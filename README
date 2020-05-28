@@ -1,0 +1,29 @@
+
+Welcome to reZet80!
+
+reZet80 stands for "Reset me back to the 80s with the Zet80".
+
+reZet80 features a set of retro projects to develop computing and
+arcade systems that resemble the Z80 machines of the late 70s and early 80s.
+
+All systems are built from scratch and not copies of any other Z80 system.
+
+The development process includes hardware design and low-level software
+programming in Assembler.
+
+reZet80 DEV:
+------------
+This system builds the foundation for all other reZet80 projects.
+It's a development system for the low-level Z80 retro enthusiast.
+
+reZet80 CLASSIC:
+----------------
+This is the classic computer system of the 80s.
+
+I started reZet80 back in 1996.
+reZet80 sets my memories free and resets me back to the 80s with the Z80.
+
+---------------------------------------------
+README: this file
+LICENSE: current licensing terms
+README_about_myself: a few words about myself

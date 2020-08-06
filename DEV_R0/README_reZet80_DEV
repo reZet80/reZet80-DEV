@@ -1,0 +1,48 @@
+
+reZet80 DEV README [last modified: 2020-08-06]
+----------------------------------------------
+
+This README describes the reZet80 DEV system.
+
+First of all, reZet80 stands for "Reset me back to the 80s with the Zet80".
+
+The reZet80 DEV is a barebone (minimalistic) development system for the
+low-level Z80 retro enthusiast.
+Its main use is programming in Assembler using the Z80 processor.
+The system resembles the Z80 machines of the late 70s and early 80s.
+But it is built from scratch and not a copy of any other Z80 system.
+
+The reZet80 DEV builds the foundation for all my coming reZet80 projects.
+It involves hardware and software development.
+I plan to develop and build every single pcb trace and every single bit
+of machine code by myself from scratch.
+Doing it yourself is believing (DIYIB)!
+And: What you do yourself is what you get (WYDYIWYG)!
+
+The reZet80 DEV includes a Z80 CPU, a motherboard, a power supply with on/off
+and reset switches, memory, I/O circuitry, a display, a keypad and of course
+the monitor software. Pieces of hardware like LCD that were not available
+back then are also part of the system.
+All peripherals will be connected directly to the Z80 and no other processor
+like for example AVR, PIC or ARM will be used, neither as a bootloader nor to
+attach peripherals to.
+
+Two LCD displays are available: 16x1 and 20x4 characters.
+To double the fun factor a real-time clock is included.
+
+All we can do in the beginning is enter and display hexadecimal numbers
+but the full Z80 instruction set is ready to use.
+The DEV runs my own monitor software.
+
+This system will be enhanced on demand for convenience.
+
+List of modules:
+- Backplane
+- Reset & power-on reset board
+- Z80 CPU board
+- 64 KiB ROM/RAM board
+- I/O board
+- LCD 16x1
+- LCD 20x4
+- Hexadecimal keypad (16 keys)
+- RTC 72421

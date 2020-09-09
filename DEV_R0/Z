@@ -1,0 +1,4 @@
+#!/bin/sh
+cd src
+z80asm _dev.asm -o ../bin/_dev.z80 --list=../bin/_dev.lst
+cd ..

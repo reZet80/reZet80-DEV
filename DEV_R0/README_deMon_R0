@@ -1,0 +1,28 @@
+
+reZet80 deMon R0 README [last modified: 2020-08-06]
+---------------------------------------------------
+
+This is the reZet80 deMon (debug Monitor) R0 (release zero).
+It's the software that runs on the reZet80 DEV.
+
+The amount of ROM and RAM are checked and displayed first (shall be
+20H and 20H for the 64 KiB board, "H" for hexadecimal).
+Then the date and time are displayed (will be 2000-00-00 and 00:00:00 on
+first startup).
+After pressing any key (the right arrow tells you to do so) you are provided
+with a prompt.
+The only available command is "DWYYMMDDHHMMSS" to set the date and time.
+  D:  set "D"ate / time command
+  W:  day of the week (0 = Sunday, 6 = Saturday)
+  YY: year (20YY, 00 - 99)
+  MM: month (01 - 12)
+  DD: day (01 - 31)
+  HH: hour (00 - 24, only 24-hour format is supported for now)
+  MM: minute (00 - 59)
+  SS: second (00 - 59)
+No plausibility checks are done.
+12-hour format and a few other functions are not implemented yet.
+Due to the battery backup the system clock continues to work after
+system shutdown.
+
+And that's it for R0.

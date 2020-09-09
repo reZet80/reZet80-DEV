@@ -1,0 +1,22 @@
+
+reZet80 RTC 72421 board specs [last modified: 2020-08-06]
+---------------------------------------------------------
+
+This is the RTC 72421 board for the I/O bus (see specs_IO_bus).
+
+The RTC-72421 is a 4-bit real-time clock with a parallel interface.
+It provides 16 registers that store time (hour, minute, second) and calendar
+(year, month, day, day of the week).
+Battery backup, automatic leap year correction and a fixed-period interrupt
+are also included.
+
+Bill of materials:
+- PCB 5x7 cm (at least 22 rows)
+- 22-pin right-angled male connector
+- DIP-18 narrow socket
+- RTC-72421
+- CR2032 3V battery
+- battery holder
+- 2x schotthy diode IN5817
+- capacitor 100 nF
+- capacitor 47 uF

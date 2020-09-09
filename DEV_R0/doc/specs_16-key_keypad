@@ -1,0 +1,20 @@
+
+reZet80 16-key keypad specs [last modified: 2020-08-06]
+-------------------------------------------------------
+
+This is the hexadecimal keypad for the I/O bus (see specs_IO_bus).
+
+The keys '0' to 'F' are connected via a 4-bit matrix.
+
+Bill of materials:
+- 16-key (hexadecimal) keypad
+- PCB 5x7 cm (at least 22 rows)
+- 22-pin right-angled male connector
+- 2x 4-pin male connector
+- 2x 4-wire cable female/female
+- DIP-14 socket
+- 2x DIP-20 socket
+- 74x04 hex inverter
+- 2x 74x373 octal latch
+- 4x resistor 4k7
+- capacitor 100 nF

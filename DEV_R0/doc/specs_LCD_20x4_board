@@ -1,0 +1,41 @@
+
+reZet80 LCD 20x4 board specs [last modified: 2020-08-06]
+--------------------------------------------------------
+
+This is the LCD 20x4 board for the I/O bus (see specs_IO_bus).
+
+20x4 (20 characters, 4 lines) LCD modules provide a parallel interface and
+are wired as follows:
+
+ 1: GND
+ 2: +5V
+ 3: V0
+ 4: RS   [A0]
+ 5: R/W  [/WR]
+ 6: E    [IOSEL inverted]
+ 7: DB0  [D0]
+ 8: DB1  [D1]
+ 9: DB2  [D2]
+10: DB3  [D3]
+11: DB4  [D4]
+12: DB5  [D5]
+13: DB6  [D6]
+14: DB7  [D7]
+15: VDD backlight
+16: GND backlight
+
+A variable 4.7k resistor connected to V0 is used to set the display contrast.
+A 3.3R resistor is connected between LCD pin 16 and GND if VDD backlight is
+less than 5V (please check your specs!), otherwise connect pin 16 directly
+to GND.
+
+Bill of materials:
+- PCB 5x7 cm (at least 23 rows)
+- 23-pin right-angled male connector
+- DIP-14 socket
+- DIP-20 socket
+- 74x04 hex inverter
+- 74x245 octal bidirectional transceiver
+- resistor 3.3R (choose according to the LCD specs)
+- variable resistor 4k7
+- capacitor 100 nF

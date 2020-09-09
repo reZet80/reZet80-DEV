@@ -1,0 +1,687 @@
+# File _dev.asm
+0000			;=========================================================================== 
+0000			; reZet80 - high-end retro arcade gaming and computing 
+0000			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0000			; reZet80 DEV (_dev.asm) [last modified: 2020-03-22] 
+0000			; indentation setting: tab size = 8 
+0000			;=========================================================================== 
+0000			; hardware configuration: 
+0000			_LCD_16x1:	equ 0			; one display mandatory 
+0000			_LCD_20x4:	equ 1			; only one LCD allowed 
+0000			_KEYPAD_16:	equ 1			; one keypad mandatory 
+0000			_RTC_72421:	equ 1			; one RTC mandatory 
+0000			;=========================================================================== 
+0000			; I/O ports: 
+0000			; 00h-0fh: tbd 
+0000			; 10h-1fh: tbd 
+0000			; 20h-2fh: tbd 
+0000			; 30h-3fh: tbd 
+0000			;--------------------------------------------------------------------------- 
+0000			; 40h-4fh: keypad 16 
+0000			_KEY_OUT:	equ 40h			; output buffer 
+0000			;--------------------------------------------------------------------------- 
+0000			; 50h-5fh: keypad 16 
+0000			_KEY_IN:	equ 50h			; input buffer 
+0000			;--------------------------------------------------------------------------- 
+0000			; 60h-6fh: RTC 
+0000			_RTC_0:		equ 60h 
+0000			_RTC_1:		equ 61h 
+0000			_RTC_2:		equ 62h 
+0000			_RTC_3:		equ 63h 
+0000			_RTC_4:		equ 64h 
+0000			_RTC_5:		equ 65h 
+0000			_RTC_6:		equ 66h 
+0000			_RTC_7:		equ 67h 
+0000			_RTC_8:		equ 68h 
+0000			_RTC_9:		equ 69h 
+0000			_RTC_A:		equ 6ah 
+0000			_RTC_B:		equ 6bh 
+0000			_RTC_C:		equ 6ch 
+0000			_RTC_D:		equ 6dh 
+0000			_RTC_E:		equ 6eh 
+0000			_RTC_F:		equ 6fh 
+0000			;--------------------------------------------------------------------------- 
+0000			; 70h-7fh: LCD 
+0000			_LCD_CMD:	equ 71h			; LCD command 
+0000			_LCD_DAT:	equ 70h			; LCD characters 
+0000			;=========================================================================== 
+0000			; logical memory: 
+0000			; 0000h-0fffh: code (4 KiB) 
+0000			; f000h-ffffh: data (4 KiB) 
+0000			; |f000h-fbffh: unused (3 KiB) 
+0000			; |fc00h-fdffh: stack (0.5 KiB) 
+0000			; |fe00h-ffffh: reZet80 data (0.5 KiB) 
+0000			_buffer:	equ 0fe00h		; 16-byte buffer (max command = 14) 
+0000			;--------------------------------------------------------------------------- 
+0000			; start of Z80 execution - maskable interrupts disabled by hardware reset 
+0000 0x00...				ds 03h, 00h		; placeholder 
+0003 c3 08 01				jp _dinit 
+0006 0x00...				ds 02h, 00h		; reserved for now 
+0008			;--------------------------------------------------------------------------- 
+0008 0xff...				ds 08h, 0ffh		; rst 08h 
+0010 0x00...				ds 08h, 00h		; rst 10h 
+0018 0xff...				ds 08h, 0ffh		; rst 18h 
+0020 0x00...				ds 08h, 00h		; rst 20h 
+0028 0xff...				ds 08h, 0ffh		; rst 28h 
+0030 0x00...				ds 08h, 00h		; rst 30h 
+0038 0xff...				ds 2eh, 0ffh		; ISR starts at 0038h 
+0066 0x00...				ds 9ah, 00h		; NMISR starts at 0066h 
+0100			;--------------------------------------------------------------------------- 
+0100 36 00		_rinit:		ld (hl), 00h 
+0102 54					ld d, h 
+0103 5d					ld e, l 
+0104 13					inc de 
+0105 ed b0				ldir 
+0107 c9					ret 
+0108			;--------------------------------------------------------------------------- 
+0108 21 00 fe		_dinit:		ld hl, _buffer 
+010b f9					ld sp, hl		; stack below reZet80 data 
+010c			if _LCD_16x1 | _LCD_20x4 
+010c cd 57 02				call _lcd_init_8	; set 8-bit LCD interface 
+010f			endif 
+010f 01 ff 01				ld bc, 01ffh 
+0112 cd 00 01				call _rinit		; init reZet80 data with zeroes 
+0115			; determine how much memory we have 
+0115			; if a memory location cannot be changed assume it's ROM (TODO: could be bad RAM, too) 
+0115 af			_rxm_cnt:	xor a 
+0116 67					ld h, a 
+0117 6f					ld l, a			; start address 
+0118 d9					exx 
+0119 47					ld b, a			; RAM pages count 
+011a 4f					ld c, a			; ROM pages count 
+011b d9					exx 
+011c 06 10				ld b, 10h		; 16 pages 
+011e 11 00 10		_rxm_page:	ld de, 1000h		; 4096 bytes = 1 page 
+0121 4e			_rxm_next:	ld c, (hl)		; save value 
+0122 3e 55				ld a, 55h		; 01010101b 
+0124 77					ld (hl), a 
+0125 be					cp (hl) 
+0126 20 11				jr nz, _rxm_rom 
+0128 2f					cpl			; 10101010b=aah 
+0129 77					ld (hl), a 
+012a be					cp (hl) 
+012b 20 0c				jr nz, _rxm_rom 
+012d 71					ld (hl), c		; restore value 
+012e 23					inc hl 
+012f 1b					dec de 
+0130 20 ef				jr nz, _rxm_next 
+0132 d9					exx 
+0133 04					inc b			; checked 1 RAM page 
+0134 d9					exx 
+0135 10 e7				djnz _rxm_page 
+0137 18 06				jr _dinit2 
+0139 d9			_rxm_rom:	exx 
+013a 0c					inc c			; found 1 ROM page 
+013b d9					exx 
+013c 19					add hl, de		; next page 
+013d 10 e2				djnz _rxm_next 
+013f			;--------------------------------------------------------------------------- 
+013f			_dinit2: 
+013f			if _LCD_16x1 | _LCD_20x4 
+013f cd 64 02				call _lcd_init		; finish LCD initialization 
+0142			endif 
+0142 21 87 02				ld hl, _dat_hi		; welcome message 
+0145 cd d0 02				call _text		; output 
+0148			;--------------------------------------------------------------------------- 
+0148			if _LCD_16x1 
+0148			; all this does is show amount of ROM and RAM, display date and time and 
+0148			; provide us with a prompt to enter new date / time 
+0148					call _lcd_9		; go to 9th char 
+0148					call _text		; output welcome message 2nd part 
+0148					call _key_in		; wait for keypress 
+0148					call _lcd_clear		; clear screen 
+0148					exx 
+0148					ld a, b 
+0148					exx 
+0148					call _conv_kib 
+0148					ld hl, _dat_kib		; output amount of ROM 
+0148					call _text 
+0148					call _lcd_9		; go to 9th char 
+0148					ld hl, _dat_rom 
+0148					call _text 
+0148					call _key_in		; wait for keypress 
+0148					call _lcd_clear		; clear screen 
+0148					exx 
+0148					ld a, c 
+0148					exx 
+0148					call _conv_kib 
+0148					ld hl, _dat_kib		; output amount of RAM 
+0148					call _text 
+0148					call _lcd_9		; go to 9th char 
+0148					ld hl, _dat_ram 
+0148					call _text 
+0148					call _key_in		; wait for keypress 
+0148					call _lcd_clear		; clear screen 
+0148					call _rtc_date		; get date 
+0148					push hl 
+0148					push de 
+0148					push bc 
+0148					ld hl, _dat_weekday	; output day of week 
+0148					ld de, 0004h 
+0148			_day_week:	and a 
+0148					jr z, _day_week_done 
+0148					add hl, de 
+0148					dec a 
+0148					jr _day_week 
+0148			_day_week_done:	call _text 
+0148					ld hl, _dat_2k		; output '20' 
+0148					call _text 
+0148					pop bc			; output year 
+0148					ld a, c 
+0148					call _to_ascii 
+0148					ld a, b 
+0148					call _to_ascii 
+0148					call _lcd_9		; go to 9th char 
+0148					call _lcd_dash		; output a '-' 
+0148					pop de			; output month 
+0148					ld a, d 
+0148					call _to_ascii 
+0148					ld a, e 
+0148					call _to_ascii 
+0148					call _lcd_dash		; output a '-' 
+0148					pop hl			; output day 
+0148					ld a, h 
+0148					call _to_ascii 
+0148					ld a, l 
+0148					call _to_ascii 
+0148					ld hl, _dat_next1	; output an arrow 
+0148					call _text 
+0148					call _key_in		; wait for keypress 
+0148					call _lcd_clear		; clear screen 
+0148					call _rtc_time		; get time 
+0148					push hl 
+0148					push de 
+0148					ld a, c 
+0148					call _to_ascii		; output hour 
+0148					ld a, b 
+0148					call _to_ascii 
+0148					call _lcd_colon		; output a ':' 
+0148					pop de			; output minute 
+0148					ld a, d 
+0148					call _to_ascii 
+0148					ld a, e 
+0148					call _to_ascii 
+0148					call _lcd_colon		; output a ':' 
+0148					pop hl			; output second 
+0148					ld a, h 
+0148					call _to_ascii 
+0148					ld a, l 
+0148					call _to_ascii 
+0148					call _lcd_9		; go to 9th char 
+0148					ld hl, _dat_next2	; output an arrow 
+0148					call _text 
+0148					call _key_in		; wait for keypress 
+0148					call _lcd_clear		; clear screen 
+0148					call _lcd_prompt	; at last a prompt 
+0148			_loop_begin:	ld e, 01h		; key count 
+0148					ld hl, _buffer 
+0148			_loop:		call _key_in		; wait for keypress 
+0148					ld a, d 
+0148					ld (hl), a		; save key 
+0148					inc hl 
+0148					inc e 
+0148					call _to_ascii		; output 
+0148					ld a, e 
+0148					cp 08h			; need to move to 9th char ? 
+0148					call z, _lcd_9 
+0148					cp 0fh			; 15 chars max 
+0148					jr nz, _loop 
+0148					ld hl, _buffer 
+0148					ld a, (hl) 
+0148					inc hl 
+0148					cp 0dh			; 'D' ? 
+0148					jr nz, _loop_end	; if no start again 
+0148					ld a, (hl)		; day of the week 
+0148					inc hl 
+0148					ex af, af' 
+0148					ld b, (hl)		; Y 
+0148					inc hl 
+0148					ld c, (hl)		; Y 
+0148					inc hl 
+0148					ld d, (hl)		; M 
+0148					inc hl 
+0148					ld e, (hl)		; M 
+0148					inc hl 
+0148					ld a, (hl) 
+0148					inc hl 
+0148					push hl 
+0148					ld l, (hl)		; D 
+0148					ld h, a			; D 
+0148					exx 
+0148					pop hl 
+0148					inc hl 
+0148					ld b, (hl)		; H 
+0148					inc hl 
+0148					ld c, (hl)		; H 
+0148					inc hl 
+0148					ld d, (hl)		; M 
+0148					inc hl 
+0148					ld e, (hl)		; M 
+0148					inc hl 
+0148					ld a, (hl) 
+0148					inc hl 
+0148					ld l, (hl)		; S 
+0148					ld h, a			; S 
+0148					call _rtc_set		; set new time/date 
+0148			_loop_end:	call _lcd_clear		; clear screen 
+0148					call _lcd_prompt	; prompt again 
+0148					jr _loop_begin 
+0148			include "_lcd_16x1.asm" 
+0148			endif 
+0148			;--------------------------------------------------------------------------- 
+0148			if _LCD_20x4 
+0148 01 00 01				ld bc, 0100h 
+014b cd 71 02				call _lcd_line		; pos=0,2 
+014e d9					exx 
+014f 78					ld a, b 
+0150 d9					exx 
+0151 cd b9 02				call _conv_kib 
+0154 21 96 02				ld hl, _dat_rom		; output amount of ROM 
+0157 cd d0 02				call _text 
+015a 01 00 02				ld bc, 0200h 
+015d cd 71 02				call _lcd_line		; pos=0,3 
+0160 d9					exx 
+0161 79					ld a, c 
+0162 d9					exx 
+0163 cd b9 02				call _conv_kib 
+0166 21 a0 02				ld hl, _dat_ram		; output amount of RAM 
+0169 cd d0 02				call _text 
+016c 01 00 03				ld bc, 0300h 
+016f cd 71 02				call _lcd_line		; pos=0,4 
+0172 cd 11 03				call _rtc_date		; get date 
+0175 e5					push hl 
+0176 d5					push de 
+0177 c5					push bc 
+0178 21 7e 03				ld hl, _dat_weekday	; output day of week 
+017b 11 04 00				ld de, 0004h 
+017e a7			_day_week:	and a 
+017f 28 04				jr z, _day_week_done 
+0181 19					add hl, de 
+0182 3d					dec a 
+0183 18 f9				jr _day_week 
+0185 cd d0 02		_day_week_done:	call _text 
+0188 21 9a 03				ld hl, _dat_2k		; output '20' 
+018b cd d0 02				call _text 
+018e c1					pop bc			; output year 
+018f 79					ld a, c 
+0190 cd ac 02				call _to_ascii 
+0193 78					ld a, b 
+0194 cd ac 02				call _to_ascii 
+0197 cd 41 02				call _lcd_dash		; output a '-' 
+019a d1					pop de			; output month 
+019b 7a					ld a, d 
+019c cd ac 02				call _to_ascii 
+019f 7b					ld a, e 
+01a0 cd ac 02				call _to_ascii 
+01a3 cd 41 02				call _lcd_dash		; output a '-' 
+01a6 e1					pop hl			; output day 
+01a7 7c					ld a, h 
+01a8 cd ac 02				call _to_ascii 
+01ab 7d					ld a, l 
+01ac cd ac 02				call _to_ascii 
+01af 01 0c 02				ld bc, 020ch 
+01b2 cd 71 02				call _lcd_line		; pos=12,3 
+01b5 cd e9 02				call _rtc_time		; get time 
+01b8 e5					push hl 
+01b9 d5					push de 
+01ba 79					ld a, c 
+01bb cd ac 02				call _to_ascii		; output hour 
+01be 78					ld a, b 
+01bf cd ac 02				call _to_ascii 
+01c2 cd 3d 02				call _lcd_colon		; output a ':' 
+01c5 d1					pop de			; output minute 
+01c6 7a					ld a, d 
+01c7 cd ac 02				call _to_ascii 
+01ca 7b					ld a, e 
+01cb cd ac 02				call _to_ascii 
+01ce cd 3d 02				call _lcd_colon		; output a ':' 
+01d1 e1					pop hl			; output second 
+01d2 7c					ld a, h 
+01d3 cd ac 02				call _to_ascii 
+01d6 7d					ld a, l 
+01d7 cd ac 02				call _to_ascii 
+01da 01 13 03				ld bc, 0313h 
+01dd cd 71 02				call _lcd_line		; pos=20,4 
+01e0 21 aa 02				ld hl, _dat_next	; output an arrow 
+01e3 cd d0 02				call _text 
+01e6 cd d6 03				call _key_in		; wait for keypress 
+01e9 cd 53 02				call _lcd_clear		; clear screen 
+01ec cd 45 02				call _lcd_prompt	; at last a prompt 
+01ef 1e 01		_loop_begin:	ld e, 01h		; key count 
+01f1 21 00 fe				ld hl, _buffer 
+01f4 cd d6 03		_loop:		call _key_in		; wait for keypress 
+01f7 7a					ld a, d 
+01f8 77					ld (hl), a		; save key 
+01f9 23					inc hl 
+01fa 1c					inc e 
+01fb cd ac 02				call _to_ascii		; output 
+01fe 7b					ld a, e 
+01ff fe 0f				cp 0fh			; 15 chars max 
+0201 20 f1				jr nz, _loop 
+0203 21 00 fe				ld hl, _buffer 
+0206 7e					ld a, (hl) 
+0207 23					inc hl 
+0208 fe 0d				cp 0dh			; 'D' ? 
+020a 20 22				jr nz, _loop_end	; if no start again 
+020c 7e					ld a, (hl)		; day of the week 
+020d 23					inc hl 
+020e 08					ex af, af' 
+020f 46					ld b, (hl)		; Y 
+0210 23					inc hl 
+0211 4e					ld c, (hl)		; Y 
+0212 23					inc hl 
+0213 56					ld d, (hl)		; M 
+0214 23					inc hl 
+0215 5e					ld e, (hl)		; M 
+0216 23					inc hl 
+0217 7e					ld a, (hl) 
+0218 23					inc hl 
+0219 e5					push hl 
+021a 6e					ld l, (hl)		; D 
+021b 67					ld h, a			; D 
+021c d9					exx 
+021d e1					pop hl 
+021e 23					inc hl 
+021f 46					ld b, (hl)		; H 
+0220 23					inc hl 
+0221 4e					ld c, (hl)		; H 
+0222 23					inc hl 
+0223 56					ld d, (hl)		; M 
+0224 23					inc hl 
+0225 5e					ld e, (hl)		; M 
+0226 23					inc hl 
+0227 7e					ld a, (hl) 
+0228 23					inc hl 
+0229 6e					ld l, (hl)		; S 
+022a 67					ld h, a			; S 
+022b cd 3c 03				call _rtc_set		; set new time/date 
+022e cd 53 02		_loop_end:	call _lcd_clear		; clear screen 
+0231 cd 45 02				call _lcd_prompt	; prompt again 
+0234 18 b9				jr _loop_begin 
+0236			include "_lcd_20x4.asm" 
+0236			;=========================================================================== 
+0236			; reZet80 - high-end retro arcade gaming and computing 
+0236			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0236			; HD44780 LCD 20x4 driver (_lcd_20x4.asm) [last modified: 2020-01-17] 
+0236			; indentation setting: tab size = 8 
+0236			;=========================================================================== 
+0236 db 71		_lcd_ready:	in a, (_LCD_CMD)	; read busy flag 
+0238 07					rlca			; bit 7 set ? 
+0239 38 fb				jr c, _lcd_ready	; if yes, wait until cleared 
+023b 79					ld a, c 
+023c c9					ret 
+023d			;--------------------------------------------------------------------------- 
+023d 0e 3a		_lcd_colon:	ld c, ':' 
+023f 18 06				jr _lcd_dat 
+0241			;--------------------------------------------------------------------------- 
+0241 0e 2d		_lcd_dash:	ld c, '-' 
+0243 18 02				jr _lcd_dat 
+0245			;--------------------------------------------------------------------------- 
+0245 0e 3e		_lcd_prompt:	ld c, '>'		; LCD uses ASCII 
+0247			;--------------------------------------------------------------------------- 
+0247 cd 36 02		_lcd_dat:	call _lcd_ready 
+024a d3 70				out (_LCD_DAT), a 
+024c c9					ret 
+024d			;--------------------------------------------------------------------------- 
+024d cd 36 02		_lcd_cmd:	call _lcd_ready 
+0250 d3 71				out (_LCD_CMD), a 
+0252 c9					ret 
+0253			;--------------------------------------------------------------------------- 
+0253 0e 01		_lcd_clear:	ld c, 01h		; 00000001b clear display|address=00h 
+0255 18 f6				jr _lcd_cmd 
+0257			;--------------------------------------------------------------------------- 
+0257 01 00 03		_lcd_init_8:	ld bc, 0300h 
+025a 0d			_lcd_init_3:	dec c			; 4*256 + 12*255 + 7 T 
+025b 20 fd				jr nz, _lcd_init_3	; delay ~ 0,2 ms @ 20 MHz 
+025d 3e 30				ld a, 30h		; 00110000b set 8-bit interface 
+025f d3 71				out (_LCD_CMD), a 
+0261 10 f7				djnz _lcd_init_3	; repeat for reliable 8-bit init 
+0263 c9					ret 
+0264			;--------------------------------------------------------------------------- 
+0264 21 82 02		_lcd_init:	ld hl, _dat_lcd_init 
+0267 46					ld b, (hl) 
+0268 23					inc hl 
+0269 4e			_lcd_init_r:	ld c, (hl) 
+026a 23					inc hl 
+026b cd 4d 02				call _lcd_cmd 
+026e 10 f9				djnz _lcd_init_r 
+0270 c9					ret 
+0271			;--------------------------------------------------------------------------- 
+0271 11 7e 02		_lcd_line:	ld de, _dat_lcd_line 
+0274 78					ld a, b 
+0275 83					add a, e 
+0276 5f					ld e, a 
+0277 1a					ld a, (de) 
+0278 81					add c 
+0279 f6 80				or 80h			; 1xxxxxxxb set address 
+027b 4f					ld c, a 
+027c 18 cf				jr _lcd_cmd 
+027e			;--------------------------------------------------------------------------- 
+027e 00 40 14 54	_dat_lcd_line:	db 00h, 40h, 14h, 54h	; line address 
+0282			;--------------------------------------------------------------------------- 
+0282 04			_dat_lcd_init:	db 04h			; 4 commands 
+0283 38					db 38h			; 00111000b 8-bit|2 lines|5x7 dots 
+0284 06					db 06h			; 00000110b address inc|no shift 
+0285 0c					db 0ch			; 00001100b display on|cursor off|blink off 
+0286 01					db 01h			; 00000001b clear display|address=0 
+0287			;--------------------------------------------------------------------------- 
+0287 .. 00		_dat_hi:	db 'reZet80 DEV R0', 00h 
+0296 .. 00		_dat_rom:	db 'H KiB ROM', 00h 
+02a0 .. 00		_dat_ram:	db 'H KiB RAM', 00h 
+02aa 7e 00		_dat_next:	db 7eh, 00h 
+02ac			;=========================================================================== 
+# End of file _lcd_20x4.asm
+02ac			endif 
+02ac			;--------------------------------------------------------------------------- 
+02ac c6 30		_to_ascii:	add a, 30h		; 0 - 9 
+02ae fe 3a				cp 3ah 
+02b0 38 02				jr c, _to_ascii_out 
+02b2 c6 07				add a, 07h		; A - F 
+02b4 4f			_to_ascii_out:	ld c, a 
+02b5			if _LCD_16x1 | _LCD_20x4 
+02b5 cd 47 02				call _lcd_dat 
+02b8			endif 
+02b8 c9					ret 
+02b9			;--------------------------------------------------------------------------- 
+02b9 cb 27		_conv_kib:	sla a 
+02bb cb 27				sla a			; 4 KiB per page 
+02bd 47					ld b, a			; save original 
+02be cb 3f				srl a			; bits 4-7 
+02c0 cb 3f				srl a 
+02c2 cb 3f				srl a 
+02c4 cb 3f				srl a 
+02c6 cd ac 02				call _to_ascii 
+02c9 78					ld a, b 
+02ca e6 0f				and 0fh			; bits 0-3 
+02cc cd ac 02				call _to_ascii 
+02cf c9					ret 
+02d0			;--------------------------------------------------------------------------- 
+02d0 7e			_text:		ld a, (hl) 
+02d1 23					inc hl 
+02d2 a7					and a 
+02d3 c8					ret z			; zero-terminated string 
+02d4 cd b4 02				call _to_ascii_out 
+02d7 18 f7				jr _text 
+02d9			;--------------------------------------------------------------------------- 
+02d9			if _RTC_72421 
+02d9			include "_rtc_72421.asm" 
+02d9			;===========================================================================  
+02d9			; reZet80 - high-end retro arcade gaming and computing  
+02d9			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved)  
+02d9			; RTC-72421 driver (_rtc_72421.asm) [last modified: 2020-01-16]  
+02d9			; indentation setting: tab size = 8  
+02d9			;===========================================================================  
+02d9			; 4-bit RTC | 16 registers | time & date in BCD | int  
+02d9			;---------------------------------------------------------------------------  
+02d9 db 6d		_rtc_ready:	in a, (_RTC_D)		; read register D  
+02db f6 01				or 01h			; set HOLD bit  
+02dd d3 6d				out (_RTC_D), a  
+02df db 6d				in a, (_RTC_D)  
+02e1 e6 02				and 02h			; BUSY bit set ?  
+02e3 c8					ret z			; leave with HOLD bit set  
+02e4 cd 0a 03				call _rtc_hold  
+02e7 18 f0				jr _rtc_ready  
+02e9			;---------------------------------------------------------------------------  
+02e9 cd d9 02		_rtc_time:	call _rtc_ready  
+02ec db 65				in a, (_RTC_5)  
+02ee e6 03				and 03h			; bits 0 - 1 | AMPM ignored  
+02f0 4f					ld c, a			; c = HOUR_10  
+02f1 db 64				in a, (_RTC_4)  
+02f3 e6 0f				and 0fh			; bits 0 - 3  
+02f5 47					ld b, a			; b = HOUR_1  
+02f6 db 63				in a, (_RTC_3)  
+02f8 e6 07				and 07h			; bits 0 - 2  
+02fa 57					ld d, a			; d = MIN_10  
+02fb db 62				in a, (_RTC_2)  
+02fd e6 0f				and 0fh			; bits 0 - 3  
+02ff 5f					ld e, a			; e = MIN_1  
+0300 db 61				in a, (_RTC_1)  
+0302 e6 07				and 07h			; bits 0 - 2  
+0304 67					ld h, a			; h = SEC_10  
+0305 db 60				in a, (_RTC_0)  
+0307 e6 0f				and 0fh			; bits 0 - 3  
+0309 6f					ld l, a			; l = SEC_1  
+030a db 6d		_rtc_hold:	in a, (_RTC_D)  
+030c e6 0e				and 0eh			; clear HOLD bit  
+030e d3 6d				out (_RTC_D), a  
+0310 c9					ret			; cb:de:hl (HH:MM:SS)  
+0311			;---------------------------------------------------------------------------  
+0311 cd d9 02		_rtc_date:	call _rtc_ready  
+0314 db 6b				in a, (_RTC_B)  
+0316 e6 0f				and 0fh			; bits 0 - 3  
+0318 4f					ld c, a			; c = YEAR_10  
+0319 db 6a				in a, (_RTC_A)  
+031b e6 0f				and 0fh			; bits 0 - 3  
+031d 47					ld b, a			; b = YEAR_1  
+031e db 69				in a, (_RTC_9)  
+0320 e6 01				and 01h			; bit 0  
+0322 57					ld d, a			; d = MONTH_10  
+0323 db 68				in a, (_RTC_8)  
+0325 e6 0f				and 0fh			; bits 0 - 3  
+0327 5f					ld e, a			; e = MONTH_1  
+0328 db 67				in a, (_RTC_7)  
+032a e6 03				and 03h			; bits 0 - 1  
+032c 67					ld h, a			; h = DAY_10  
+032d db 66				in a, (_RTC_6)  
+032f e6 0f				and 0fh			; bits 0 - 3  
+0331 6f					ld l, a			; l = DAY_1  
+0332 db 6c				in a, (_RTC_C)  
+0334 e6 07				and 07h			; bits 0 - 2 | a = WEEK_DAY  
+0336 08					ex af, af'  
+0337 cd 0a 03				call _rtc_hold  
+033a 08					ex af, af'  
+033b c9					ret			; a 20cb-de-hl (DW 20YY-MM-DD)  
+033c			;---------------------------------------------------------------------------  
+033c 3e 04		_rtc_set:	ld a, 04h		; 0100b TEST|2412|STOP|RESET  
+033e d3 6f				out (_RTC_F), a  
+0340 af					xor a			; 0000b T1|T0|INT|MASK  
+0341 d3 6e				out (_RTC_E), a  
+0343 d3 6d				out (_RTC_D), a		; 0000b 30ADJ|IRQ|BUSY|HOLD  
+0345 cd d9 02				call _rtc_ready  
+0348 3e 07				ld a, 07h		; 0111b TEST|2412|STOP|RESET  
+034a d3 6f				out (_RTC_F), a  
+034c 78					ld a, b			; write registers 0 - 5  
+034d d3 65				out (_RTC_5), a		; bc:de:hl (HH:MM:SS)  
+034f 79					ld a, c  
+0350 d3 64				out (_RTC_4), a  
+0352 7a					ld a, d  
+0353 d3 63				out (_RTC_3), a  
+0355 7b					ld a, e  
+0356 d3 62				out (_RTC_2), a  
+0358 7c					ld a, h  
+0359 d3 61				out (_RTC_1), a  
+035b 7d					ld a, l  
+035c d3 60				out (_RTC_0), a  
+035e 08					ex af, af'		; write registers 6 - C  
+035f d3 6c				out (_RTC_C), a  
+0361 d9					exx  
+0362 78					ld a, b			; a 20bc-de-hl (DW 20YY-MM-DD)  
+0363 d3 6b				out (_RTC_B), a  
+0365 79					ld a, c  
+0366 d3 6a				out (_RTC_A), a  
+0368 7a					ld a, d  
+0369 d3 69				out (_RTC_9), a  
+036b 7b					ld a, e  
+036c d3 68				out (_RTC_8), a  
+036e 7c					ld a, h  
+036f d3 67				out (_RTC_7), a  
+0371 7d					ld a, l  
+0372 d3 66				out (_RTC_6), a  
+0374 3e 04				ld a, 04h		; same as first step  
+0376 d3 6f				out (_RTC_F), a  
+0378 af					xor a  
+0379 d3 6e				out (_RTC_E), a  
+037b d3 6d				out (_RTC_D), a  
+037d c9					ret  
+037e			;---------------------------------------------------------------------------  
+037e .. 00		_dat_weekday:	db 'SUN', 00h		; = 0  
+0382 .. 00				db 'MON', 00h		; = 1  
+0386 .. 00				db 'TUE', 00h		; = 2  
+038a .. 00				db 'WED', 00h		; = 3  
+038e .. 00				db 'THU', 00h		; = 4  
+0392 .. 00				db 'FRI', 00h		; = 5  
+0396 .. 00				db 'SAT', 00h		; = 6  
+039a .. 00		_dat_2k:	db ' 20', 00h  
+039e			;===========================================================================
+# End of file _rtc_72421.asm
+039e			endif 
+039e			;--------------------------------------------------------------------------- 
+039e			; monitor command for 16-key keypad: 
+039e			; DWYYMMDDHHMMSS : set date time (W 20YY-MM-DD HH:MM:SS) [W=day of the week] 
+039e			if _KEYPAD_16 
+039e			include "_keypad16.asm" 
+039e			;=========================================================================== 
+039e			; reZet80 - high-end retro arcade gaming and computing 
+039e			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+039e			; keypad 16 driver (_keypad16.asm) [last modified: 2020-01-16] 
+039e			; indentation setting: tab size = 8 
+039e			;=========================================================================== 
+039e 06 04		_key_check:	ld b, 04h 
+03a0 0f			_key_next:	rrca 
+03a1 d8					ret c 
+03a2 14					inc d 
+03a3 10 fb				djnz _key_next 
+03a5 c9					ret 
+03a6			;--------------------------------------------------------------------------- 
+03a6 16 00		_key_scan:	ld d, 00h		; d = pressed key (0...F) 
+03a8 3e 01				ld a, 01h		; 0001b 
+03aa 4f					ld c, a			; c = active key row 
+03ab d3 40				out (_KEY_OUT), a 
+03ad db 50				in a, (_KEY_IN) 
+03af cd 9e 03				call _key_check 
+03b2 d8					ret c 
+03b3 3e 02				ld a, 02h		; 0010b 
+03b5 4f					ld c, a 
+03b6 d3 40				out (_KEY_OUT), a 
+03b8 db 50				in a, (_KEY_IN) 
+03ba cd 9e 03				call _key_check 
+03bd d8					ret c 
+03be 3e 04				ld a, 04h		; 0100b 
+03c0 4f					ld c, a 
+03c1 d3 40				out (_KEY_OUT), a 
+03c3 db 50				in a, (_KEY_IN) 
+03c5 cd 9e 03				call _key_check 
+03c8 d8					ret c 
+03c9 3e 08				ld a, 08h		; 1000b 
+03cb 4f					ld c, a 
+03cc d3 40				out (_KEY_OUT), a 
+03ce db 50				in a, (_KEY_IN) 
+03d0 cd 9e 03				call _key_check 
+03d3 d8					ret c 
+03d4 18 d0				jr _key_scan		; waits for a key press 
+03d6			;--------------------------------------------------------------------------- 
+03d6 cd a6 03		_key_in:	call _key_scan 
+03d9 79			_key_rel:	ld a, c			; load key row 
+03da d3 40				out (_KEY_OUT), a 
+03dc db 50				in a, (_KEY_IN) 
+03de e6 0f				and 0fh 
+03e0 20 f7				jr nz, _key_rel		; waits as long as the key is pressed 
+03e2 c9					ret			; all keys in row are back up 
+03e3			;=========================================================================== 
+# End of file _keypad16.asm
+03e3			endif 
+03e3			;--------------------------------------------------------------------------- 
+03e3 0x00...				ds 8000h-$, 00h		; fill up (32 KiB) 
+8000			;=========================================================================== 
+# End of file _dev.asm
+8000

@@ -1,0 +1,7 @@
+
+reZet80 DEV R0 Changelog [last modified: 2020-08-06]
+----------------------------------------------------
+
+This is the first reZet80 DEV release.
+It's numbered "zero" because it doesn't yet include the full intended set
+of features and some specifications (like the I/O bus) might still change.

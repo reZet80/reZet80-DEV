@@ -1,7 +1,7 @@
 ;===========================================================================
-; reZet80 - high-end retro arcade gaming and computing
+; reZet80 - Z80-based retrocomputing and retrogaming
 ; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved)
-; RTC-72421 driver (_rtc_72421.asm) [last modified: 2020-01-16]
+; RTC-72421 driver (_rtc_72421.asm) [last modified: 2020-10-26]
 ; indentation setting: tab size = 8
 ;===========================================================================
 ; 4-bit RTC | 16 registers | time & date in BCD | int

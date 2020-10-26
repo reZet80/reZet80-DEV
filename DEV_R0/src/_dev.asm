@@ -1,7 +1,7 @@
 ;===========================================================================
-; reZet80 - high-end retro arcade gaming and computing
+; reZet80 - Z80-based retrocomputing and retrogaming
 ; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved)
-; reZet80 DEV (_dev.asm) [last modified: 2020-03-22]
+; reZet80 DEV (_dev.asm) [last modified: 2020-10-26]
 ; indentation setting: tab size = 8
 ;===========================================================================
 ; hardware configuration:

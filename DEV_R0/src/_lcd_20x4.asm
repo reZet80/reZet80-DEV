@@ -1,7 +1,7 @@
 ;===========================================================================
-; reZet80 - high-end retro arcade gaming and computing
+; reZet80 - Z80-based retrocomputing and retrogaming
 ; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved)
-; HD44780 LCD 20x4 driver (_lcd_20x4.asm) [last modified: 2020-01-17]
+; HD44780 LCD 20x4 driver (_lcd_20x4.asm) [last modified: 2020-10-26]
 ; indentation setting: tab size = 8
 ;===========================================================================
 _lcd_ready:	in a, (_LCD_CMD)	; read busy flag

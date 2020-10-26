@@ -1,10 +1,10 @@
 
-reZet80 DEV README [last modified: 2020-08-06]
+reZet80 DEV README [last modified: 2020-10-26]
 ----------------------------------------------
 
 This README describes the reZet80 DEV system.
 
-First of all, reZet80 stands for "Reset me back to the 80s with the Zet80".
+First of all, reZet80 stands for "Reset me back to the 80s with the Z80".
 
 The reZet80 DEV is a barebone (minimalistic) development system for the
 low-level Z80 retro enthusiast.

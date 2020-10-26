@@ -1,8 +1,8 @@
 # File _dev.asm
 0000			;=========================================================================== 
-0000			; reZet80 - high-end retro arcade gaming and computing 
+0000			; reZet80 - Z80-based retrocomputing and retrogaming
 0000			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
-0000			; reZet80 DEV (_dev.asm) [last modified: 2020-03-22] 
+0000			; reZet80 DEV (_dev.asm) [last modified: 2020-10-26] 
 0000			; indentation setting: tab size = 8 
 0000			;=========================================================================== 
 0000			; hardware configuration: 
@@ -400,9 +400,9 @@
 0234 18 b9				jr _loop_begin 
 0236			include "_lcd_20x4.asm" 
 0236			;=========================================================================== 
-0236			; reZet80 - high-end retro arcade gaming and computing 
+0236			; reZet80 - Z80-based retrocomputing and retrogaming
 0236			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
-0236			; HD44780 LCD 20x4 driver (_lcd_20x4.asm) [last modified: 2020-01-17] 
+0236			; HD44780 LCD 20x4 driver (_lcd_20x4.asm) [last modified: 2020-10-26] 
 0236			; indentation setting: tab size = 8 
 0236			;=========================================================================== 
 0236 db 71		_lcd_ready:	in a, (_LCD_CMD)	; read busy flag 
@@ -506,9 +506,9 @@
 02d9			if _RTC_72421 
 02d9			include "_rtc_72421.asm" 
 02d9			;===========================================================================  
-02d9			; reZet80 - high-end retro arcade gaming and computing  
+02d9			; reZet80 - Z80-based retrocomputing and retrogaming
 02d9			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved)  
-02d9			; RTC-72421 driver (_rtc_72421.asm) [last modified: 2020-01-16]  
+02d9			; RTC-72421 driver (_rtc_72421.asm) [last modified: 2020-10-26]  
 02d9			; indentation setting: tab size = 8  
 02d9			;===========================================================================  
 02d9			; 4-bit RTC | 16 registers | time & date in BCD | int  
@@ -631,9 +631,9 @@
 039e			if _KEYPAD_16 
 039e			include "_keypad16.asm" 
 039e			;=========================================================================== 
-039e			; reZet80 - high-end retro arcade gaming and computing 
+039e			; reZet80 - Z80-based retrocomputing and retrogaming
 039e			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
-039e			; keypad 16 driver (_keypad16.asm) [last modified: 2020-01-16] 
+039e			; keypad 16 driver (_keypad16.asm) [last modified: 2020-10-26] 
 039e			; indentation setting: tab size = 8 
 039e			;=========================================================================== 
 039e 06 04		_key_check:	ld b, 04h 

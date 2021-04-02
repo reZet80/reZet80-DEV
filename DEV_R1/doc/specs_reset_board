@@ -1,0 +1,22 @@
+
+reZet80 reset board specs [last modified: 2020-08-06]
+-----------------------------------------------------
+
+This is the reset board for the CPU bus (see specs_CPU_bus).
+
+The sole purpose of the reset board is to generate the RESET signal that
+initializes the Z80 CPU.
+Additionally an optional power-on reset of about 3 ms is triggered when
+power is applied to the system. This frees us from manually pressing
+the reset button on start up.
+
+Bill of materials:
+- PCB 4x6 cm (at least 5 rows)
+- 5-pin right-angled male connector
+- DIP-8 socket (optional)
+- TL7705 supervisor (optional)
+- tactile push button switch
+- resistor 4k7
+- capacitor 100 nF (optional)
+- capacitor 220 nF (optional)
+- jumper

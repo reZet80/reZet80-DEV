@@ -1,0 +1,23 @@
+
+reZet80 display board specs [last modified: 2020-08-06]
+-------------------------------------------------------
+
+This is the 8-digit 7-segment display board for the I/O bus 
+(see specs_IO_bus).
+
+The board displays 8 hexadecimal numbers and 3 additional characters
+(H, L and blank) plus 8 decimal points.
+
+It uses only one I/O port in the 8-bit I/O space, the display digits are
+addressed via 16-bit I/O.
+
+Bill of materials:
+- PCB 12x8 cm (at least 40 rows)
+- 40-pin right-angled male connector
+- 4x 2-digit common cathode LED display (common anode also possible)
+- DIP-16 socket
+- 8x DIP-20 socket
+- 74x138 demultiplexer
+- 8x 74x374 8-bit flip-flop (or 74x574)
+- 64x resistor (choose according to LED specs)
+- capacitor 100 nF

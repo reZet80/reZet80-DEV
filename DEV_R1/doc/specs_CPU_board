@@ -1,0 +1,33 @@
+
+reZet80 CPU board specs [last modified: 2020-08-06]
+---------------------------------------------------
+
+The Z80 is the heart of the system and the CPU board is quite simple.
+It connects all 40 CPU pins to the bus.
+The signals BUSACK, BUSREQ, HALT, NMI, RFSH and WAIT are optional.
+
+The objective of the CPU bus design is to do without intersections except for
+the data pins (they are out of order anyway) and the halt pin that is of no
+interest in the current design stage (see specs_CPU_bus).
+
+6 resistors 4k7 are used to pull the signals BUSREQ, CLK, INT, NMI, RESET
+and WAIT high.
+
+Additionally an oscillator is available on the board.
+With the help of 2 jumpers 2 different clock speeds and 3 configurations
+are possible:
+- CPU board oscillator for the entire system
+- An external oscillator for the entire system
+- CPU board oscillator only for the CPU and an external oscillator for the
+rest of the system
+
+Bill of materials:
+- PCB 12x8 cm (at least 40 rows)
+- 40-pin right-angled male connector
+- DIP-40 socket (or ZIF-40 socket in order to easily exchange CPUs)
+- DIP-8 or DIP-14 socket (depending on oscillator size)
+- 20 MHz Z80 CPU DIP-40
+- 20 MHz oscillator (DIP-8 or DIP-14)
+- 6x resistor 4k7
+- capacitor 100 nF
+- 2x jumper

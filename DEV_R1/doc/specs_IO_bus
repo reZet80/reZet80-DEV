@@ -1,0 +1,87 @@
+
+reZet80 I/O bus specs [last modified: 2020-12-17]
+-------------------------------------------------
+
+The I/O bus adds a row of 40 I/O or user-defined pins to the CPU bus.
+
+IOB01: D7
+IOB02: D6
+IOB03: D5
+IOB04: D4
+IOB05: D3
+IOB06: D2
+IOB07: D1
+IOB08: D0
+IOB09: IORQ
+IOB10: MREQ
+IOB11: NMI         | user-defined
+IOB12: INT         | user-defined
+IOB13: RD
+IOB14: WR
+IOB15: BUSACK      | user-defined
+IOB16: WAIT        | user-defined
+IOB17: BUSREQ      | user-defined
+IOB18: RESET
+IOB19: M1
+IOB20: RFSH        | user-defined
+IOB21: GND
+IOB22: +5V
+IOB23: A0
+IOB24: A1
+IOB25: A2
+IOB26: A3
+IOB27: A4
+IOB28: A5
+IOB29: A6
+IOB30: A7
+IOB31: A8
+IOB32: A9
+IOB33: A10
+IOB34: A11
+IOB35: A12
+IOB36: A13
+IOB37: A14
+IOB38: A15
+IOB39: CLK
+IOB40: HALT        | user-defined
+
+IOB41: IOSEL_00_0F | user-defined
+IOB42: IOSEL_10_1F | user-defined
+IOB43: IOSEL_20_2F | user-defined
+IOB44: IOSEL_30_3F | user-defined
+IOB45: IOSEL_40_4F | user-defined
+IOB46: IOSEL_50_5F | user-defined
+IOB47: IOSEL_60_6F | user-defined
+IOB48: IOSEL_70_7F | user-defined
+IOB49: IOSEL_10    | user-defined
+IOB50: IOSEL_11    | user-defined
+IOB51: IOSEL_12    | user-defined
+IOB52: IOSEL_13    | user-defined
+IOB53: IOSEL_14    | user-defined
+IOB54: IOSEL_15    | user-defined
+IOB55: IOSEL_16    | user-defined
+IOB56: IOSEL_17    | user-defined
+IOB57: IOSEL_18    | user-defined
+IOB58: IOSEL_19    | user-defined
+IOB59: IOSEL_1A    | user-defined
+IOB60: IOSEL_1B    | user-defined
+IOB61: IOSEL_1C    | user-defined
+IOB62: IOSEL_1D    | user-defined
+IOB63: IOSEL_1E    | user-defined
+IOB64: IOSEL_1F    | user-defined
+IOB65: IOSEL_20    | user-defined
+IOB66: IOSEL_21    | user-defined
+IOB67: IOSEL_22    | user-defined
+IOB68: IOSEL_23    | user-defined
+IOB69: IOSEL_24    | user-defined
+IOB70: IOSEL_25    | user-defined
+IOB71: IOSEL_26    | user-defined
+IOB72: IOSEL_27    | user-defined
+IOB73: IOSEL_28    | user-defined
+IOB74: IOSEL_29    | user-defined
+IOB75: IOSEL_2A    | user-defined
+IOB76: IOSEL_2B    | user-defined
+IOB77: IOSEL_2C    | user-defined
+IOB78: IOSEL_2D    | user-defined
+IOB79: IOSEL_2E    | user-defined
+IOB80: IOSEL_2F    | user-defined

@@ -1,0 +1,40 @@
+
+reZet80 I/O board specs [last modified: 2020-09-09]
+---------------------------------------------------
+
+This is the I/O board for the I/O bus (see specs_IO_bus).
+Both I/O board and I/O bus are optional.
+
+The first 128 I/O ports (00h-7fh) are reserved for internal reZet80 use.
+They are divided into 8 regions of 16 ports each by a demultiplexer:
+
+00h-0fh, 10h-1fh, 20h-2fh, 30h-3fh, 40h-4fh, 50h-5fh, 60h-6fh and 70h-7fh.
+8 LEDs flash while the corresponding I/O region is selected.
+
+For I/O-demanding systems preparations have been made to divide the regions
+10h-1fh and 20h-2fh into 16 single I/O ports each by two additional optional
+demultiplexers.
+
+The other 6 regions will be further subdivided on demand.
+
+I/O bus pins 49-80 that are not utilized for I/O can be user-defined.
+The signals BUSACK, BUSREQ, HALT, NMI, RFSH and WAIT are also optional.
+
+reZet80 uses 16-bit I/O operations thus most peripheral devices need only
+one I/O port.
+
+The remaining 128 I/O ports are free to use: 80h-ffh.
+
+Bill of materials:
+- PCB 12x8 cm (at least 40 rows)
+- 2x40-pin right-angled male connector
+- DIP-16 socket
+- DIP-20 socket (optional)
+- DIP-24 wide socket (1x or 2x optional)
+- 74x138 demultiplexer
+- 74x154 demultiplexer (1x or 2x optional)
+- 74x240 octal buffer (optional)
+- 8x LED (optional)
+- 8x resistor (optional, choose according to LED specs)
+- capacitor 100 nF
+- jumper (1x or 2x optional)

@@ -1,0 +1,26 @@
+
+reZet80 64 KiB RxM board specs [last modified: 2020-08-06]
+----------------------------------------------------------
+
+This is the 64 KiB ROM/RAM board for the CPU bus (see specs_CPU_bus).
+
+For simplicity the address space is divided into 2 parts having 32 KiB ROM in
+the lower half (0000h-7fffh) and 32 KiB RAM in the upper half (8000h-ffffh).
+
+The address line A15 combined with /MREQ serves as ROM selector (/ROMCS).
+The memory read (/MEMRD) and memory write (/MEMWR) signals are also generated
+on the board.
+
+A 128 KiB SRAM chip is used instead of a 32 KiB chip. A15 and A16 are both
+connected to GND, thus the lower 32 KiB are addressed.
+
+Bill of materials:
+- PCB 12x8 cm (at least 40 rows)
+- 40-pin right-angled male connector
+- wide DIP-32 socket
+- wide DIP-28 socket (or ZIF-40 socket in order to easily exchange ROM chips)
+- 1x DIP-14 socket
+- 128 KiB SRAM (LP621024D, KM681000B, DS1245Y, ...)
+- 32 KiB ROM (AT28C256, ...)(can be PROM, EPROM, EEPROM or FLASH)
+- 74x32 quad 2-input OR gate
+- capacitor 100 nF

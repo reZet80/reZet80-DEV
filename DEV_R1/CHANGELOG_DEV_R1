@@ -1,0 +1,18 @@
+
+reZet80 DEV R1 Changelog [last modified: 2021-03-09]
+----------------------------------------------------
+
+Changes in reZet80 DEV R1 release:
+- Introduced 8-digit 7-segment LED display
+- Added I/O backplane
+- 20-key keypad is now the preferred keyboard as it adds ENTER, BACK and
+  ESC keys. The file "_keypad16.asm" is still available in the attic.
+- Updated the following modules:
+  - CPU bus specs and CPU board
+  - I/O bus specs and I/O board
+  - 64 KiB ROM/RAM: removed 74x04 inverter and tightened accesses to memory
+  - reset & power-on reset: TL7705 supervisor is now optional
+  - RTC 72421: moved to 16-bit I/O
+- Abandoned the development for LCD 16x1 and LCD 20x4.
+  The files "_lcd_16x1.asm" and "_lcd_20x4.asm" are still in the attic
+  but have not been enhanced since R0 release.

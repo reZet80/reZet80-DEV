@@ -1,0 +1,725 @@
+# File _dev.asm
+0000			;=========================================================================== 
+0000			; reZet80 - Z80-based retrocomputing and retrogaming 
+0000			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0000			; reZet80 DEV (_dev.asm) [last modified: 2020-12-19] 
+0000			; indentation setting: tab size = 8 
+0000			;=========================================================================== 
+0000			; hardware configuration: 
+0000			_KEYPAD_20:	equ 1			; one keypad mandatory 
+0000			_RTC_72421:	equ 1			; one RTC mandatory 
+0000			_7_SEG:		equ 1			; 7-segment LED display 
+0000			_7_SEG_CC:	equ 1			; common cathode LED display 
+0000			_7_SEG_CA:	equ 0			; common anode LED display 
+0000			;=========================================================================== 
+0000			; I/O ports: 
+0000			; 00h-0fh: tbd 
+0000			; 10h-1fh: tbd 
+0000			; 20h-2fh: tbd 
+0000			; 30h-3fh: tbd 
+0000			; 40h-4fh: keypad 20 
+0000			_KEY_IO:	equ 40h 
+0000			; 50h-5fh: 8-digit 7-segment debug display 
+0000			_DBG_IO:	equ 50h 
+0000			; 60h-6fh: RTC 
+0000			_RTC_0:		equ 60h 
+0000			_RTC_1:		equ 61h 
+0000			_RTC_2:		equ 62h 
+0000			_RTC_3:		equ 63h 
+0000			_RTC_4:		equ 64h 
+0000			_RTC_5:		equ 65h 
+0000			_RTC_6:		equ 66h 
+0000			_RTC_7:		equ 67h 
+0000			_RTC_8:		equ 68h 
+0000			_RTC_9:		equ 69h 
+0000			_RTC_A:		equ 6ah 
+0000			_RTC_B:		equ 6bh 
+0000			_RTC_C:		equ 6ch 
+0000			_RTC_D:		equ 6dh 
+0000			_RTC_E:		equ 6eh 
+0000			_RTC_F:		equ 6fh 
+0000			; 70h-7fh: 6-digit 7-segment clock display 
+0000			_CLK_IO:	equ 70h 
+0000			;=========================================================================== 
+0000			; logical memory: 
+0000			; 0000h-0fffh: code (4 KiB) 
+0000			; f000h-ffffh: data (4 KiB) 
+0000			; |f000h-fbffh: unused (3 KiB) 
+0000			; |fc00h-fdffh: stack (0.5 KiB) 
+0000			; |fe00h-ffffh: reZet80 data (0.5 KiB) 
+0000			_buffer:	equ 0fe00h		; 64-byte buffer 
+0000			_vram:		equ 0fe40h		; pointer to cursor in VRAM 
+0000			_curs_x:	equ 0fe42h		; cursor column [0-59] 
+0000			_curs_y:	equ 0fe43h		; cursor line [0-30] 
+0000			;--------------------------------------------------------------------------- 
+0000			; start of Z80 execution - maskable interrupts disabled by hardware reset 
+0000 00			_0000h:		nop 
+0001 00					nop 
+0002 0x00...				ds 03h, 00h		; placeholder 
+0005 c3 70 00				jp _dinit 
+0008			;--------------------------------------------------------------------------- 
+0008 0x00...				ds 08h, 00h		; rst 08h 
+0010 0x00...				ds 08h, 00h		; rst 10h 
+0018 0x00...				ds 08h, 00h		; rst 18h 
+0020 0x00...				ds 08h, 00h		; rst 20h 
+0028 0x00...				ds 08h, 00h		; rst 28h 
+0030 0x00...				ds 08h, 00h		; rst 30h 
+0038			;--------------------------------------------------------------------------- 
+0038 f3			_isr:		di			; ISR starts at 0038h 
+0039 f5					push af 
+003a c5					push bc 
+003b d5					push de 
+003c e5					push hl 
+003d 08					ex af, af' 
+003e d9					exx 
+003f f5					push af			; push both register sets 
+0040 c5					push bc 
+0041 d5					push de 
+0042 e5					push hl 
+0043 cd 37 03				call _rtc_isr		; RTC ISR 
+0046 e1					pop hl 
+0047 d1					pop de 
+0048 c1					pop bc 
+0049 f1					pop af 
+004a d9					exx 
+004b 08					ex af, af' 
+004c e1					pop hl 
+004d d1					pop de 
+004e c1					pop bc 
+004f f1					pop af 
+0050 fb					ei 
+0051 ed 4d				reti 
+0053 0x00...				ds 13h, 00h		; fill up 
+0066			;--------------------------------------------------------------------------- 
+0066 ed 45		_nmi:		retn			; NMISR starts at 0066h 
+0068			;--------------------------------------------------------------------------- 
+0068 36 00		_rinit:		ld (hl), 00h 
+006a 54					ld d, h 
+006b 5d					ld e, l 
+006c 13					inc de 
+006d ed b0				ldir 
+006f c9					ret 
+0070			;--------------------------------------------------------------------------- 
+0070 f3			_dinit:		di			; needed for soft reset 
+0071 ed 56				im 1 
+0073 21 00 fe				ld hl, _buffer 
+0076 f9					ld sp, hl		; stack below reZet80 data 
+0077 01 ff 01				ld bc, 01ffh 
+007a cd 68 00				call _rinit		; init reZet80 data with zeroes 
+007d			; determine how much memory we have 
+007d			; if a memory location cannot be changed assume it's ROM 
+007d			; TODO: could be bad RAM, too 
+007d af			_rxm_cnt:	xor a 
+007e 67					ld h, a 
+007f 6f					ld l, a			; start address 
+0080 d9					exx 
+0081 47					ld b, a			; ROM pages count 
+0082 4f					ld c, a			; RAM pages count 
+0083 d9					exx 
+0084 06 10				ld b, 10h		; 16 pages 
+0086 11 00 10		_rxm_page:	ld de, 1000h		; 4096 bytes = 1 page 
+0089 4e			_rxm_next:	ld c, (hl)		; save value 
+008a 3e 55				ld a, 55h		; 01010101b 
+008c 77					ld (hl), a 
+008d be					cp (hl) 
+008e 20 11				jr nz, _rxm_rom 
+0090 2f					cpl			; 10101010b=aah 
+0091 77					ld (hl), a 
+0092 be					cp (hl) 
+0093 20 0c				jr nz, _rxm_rom 
+0095 71					ld (hl), c		; restore value 
+0096 23					inc hl 
+0097 1b					dec de 
+0098 20 ef				jr nz, _rxm_next 
+009a d9					exx 
+009b 0c					inc c			; checked 1 RAM page 
+009c d9					exx 
+009d 10 e7				djnz _rxm_page 
+009f 18 06				jr _dinit2 
+00a1 d9			_rxm_rom:	exx 
+00a2 04					inc b			; found 1 ROM page 
+00a3 d9					exx 
+00a4 19					add hl, de		; next page 
+00a5 10 e2				djnz _rxm_next 
+00a7			;--------------------------------------------------------------------------- 
+00a7			_dinit2: 
+00a7			include "_demon.asm" 
+00a7			;=========================================================================== 
+00a7			; reZet80 - Z80-based retrocomputing and retrogaming 
+00a7			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+00a7			; reZet80 deMon (_demon.asm) [last modified: 2020-11-18] 
+00a7			; indentation setting: tab size = 8 
+00a7			;=========================================================================== 
+00a7			; deMon = debug Monitor 
+00a7			; DP means waiting for input via keypad 
+00a7			if _7_SEG 
+00a7			; output amount of ROM and RAM on debug display 
+00a7 0e 50				ld c, _DBG_IO 
+00a9 06 07				ld b, 07h		; 1st digit on the left 
+00ab d9					exx 
+00ac 78					ld a, b 
+00ad d9					exx 
+00ae cd c4 01				call _show_KiB		; amount of ROM in KiB 
+00b1 3e 11				ld a, 11h		; 'H' for hex 
+00b3 cd 30 02				call _7_seg_out 
+00b6 3e 10				ld a, 10h		; blank 
+00b8 cd 30 02				call _7_seg_out 
+00bb d9					exx 
+00bc 79					ld a, c 
+00bd d9					exx 
+00be cd c4 01				call _show_KiB		; amount of RAM in KiB 
+00c1 3e 11				ld a, 11h		; 'H' 
+00c3 cd 30 02				call _7_seg_out 
+00c6 3e 13				ld a, 13h		; DP 
+00c8 cd 30 02				call _7_seg_out 
+00cb			;--------------------------------------------------------------------------- 
+00cb			; output date and time on debug display 
+00cb cd 61 02				call _key_in		; press any key to continue 
+00ce cd bf 02				call _rtc_date		; get and show date 
+00d1 cd ec 01				call _show_date 
+00d4 cd 61 02				call _key_in		; press any key to continue 
+00d7 cd 98 02				call _rtc_time		; get and show time 
+00da cd 1e 02				call _show_time 
+00dd cd 61 02				call _key_in		; press any key to continue 
+00e0 cd dd 01				call _clr		; clear screen and prompt 
+00e3			;		call _rtc_int		; enable 1s RTC interrupt 
+00e3			;--------------------------------------------------------------------------- 
+00e3 21 00 fe		_loop_0:	ld hl, _buffer		; command loop 
+00e6 cd 61 02		_loop:		call _key_in		; wait for keypress 
+00e9 fe 10				cp 10h			; 0-F ? 
+00eb 30 07				jr nc, _loop_1 
+00ed 77					ld (hl), a		; save 
+00ee 23					inc hl 
+00ef cd 30 02				call _7_seg_out 
+00f2 18 f2				jr _loop 
+00f4 20 05		_loop_1:	jr nz, _loop_2		; ENTER ? 
+00f6 3e ff				ld a, 0ffh		; string terminator 
+00f8 77					ld (hl), a 
+00f9 18 1e				jr _loop_eval 
+00fb fe 13		_loop_2:	cp 13h			; BACK ? 
+00fd 20 0e				jr nz, _loop_3 
+00ff 7d					ld a, l			; leftmost position ? 
+0100 b5					or l 
+0101 28 e3				jr z, _loop		; then continue 
+0103 2b					dec hl			; delete last digit 
+0104 3e 13				ld a, 13h		; DP 
+0106 04					inc b			; update 7-segment 
+0107 cd 30 02				call _7_seg_out 
+010a 04					inc b 
+010b 18 d9				jr _loop 
+010d fe 12		_loop_3:	cp 12h			; ESC ? 
+010f 20 d5				jr nz, _loop 
+0111 cd 61 02		_loop_end_:	call _key_in		; press any key to continue 
+0114 cd dd 01		_loop_end:	call _clr		; clear screen 
+0117 18 ca				jr _loop_0		; start again 
+0119			;--------------------------------------------------------------------------- 
+0119			; available commands: 
+0119			; 0:		goto 0000h (soft reset) 
+0119			; 0xxxx:	goto xxxxh (jump to address) 
+0119			; 1:		show date 
+0119			; 1WYYMMDD:	set date (day of week W, year 20YY, month MM, day DD) 
+0119			;		day of week: 0 = Sunday, 1 = Monday, ..., 6 = Saturday 
+0119			; 2:		show time 
+0119			; 2HHMMSS:	set time (hour HH, minute MM, second SS, 24-hour format) 
+0119			; Axxxx:	alter memory from address xxxxh on 
+0119			;#Dxxxx:	disassemble from address xxxxh 
+0119			; E:		examine memory from address 0000h on 
+0119			; Exxxx:	examine memory from address xxxxh on 
+0119 21 00 fe		_loop_eval:	ld hl, _buffer		; command evaluation 
+011c 7e					ld a, (hl) 
+011d a7					and a			; '0' ? 
+011e 20 10				jr nz, _loop_eval_1 
+0120 cd 8d 01				call _str_term		; string terminator ? 
+0123 ca 00 00				jp z, _0000h		; soft reset 
+0126 cd 93 01				call _calc_addr		; calculate address 
+0129 cd 8d 01				call _str_term		; string terminator ? 
+012c 20 e6				jr nz, _loop_end 
+012e eb					ex de, hl 
+012f e9					jp (hl)			; jump to address 
+0130			;--------------------------------------------------------------------------- 
+0130 fe 01		_loop_eval_1:	cp 01h			; '1' ? 
+0132 20 15				jr nz, _loop_eval_2 
+0134 cd 8d 01				call _str_term		; string terminator ? 
+0137 20 08				jr nz, _loop_eval_11 
+0139 cd bf 02				call _rtc_date		; get and show date 
+013c cd ec 01				call _show_date 
+013f 18 d0				jr _loop_end_ 
+0141 cd a1 01		_loop_eval_11:	call _load_params	; set date 
+0144 cd fc 02				call _rtc_set_date 
+0147 18 cb				jr _loop_end 
+0149			;--------------------------------------------------------------------------- 
+0149 fe 02		_loop_eval_2:	cp 02h			; '2' ? 
+014b 20 15				jr nz, _loop_eval_a 
+014d cd 8d 01				call _str_term		; string terminator ? 
+0150 20 08				jr nz, _loop_eval_22 
+0152 cd 98 02				call _rtc_time		; get and show time 
+0155 cd 1e 02				call _show_time 
+0158 18 b7				jr _loop_end_ 
+015a cd a5 01		_loop_eval_22:	call _load_param	; set time 
+015d cd 18 03				call _rtc_set_time 
+0160 18 b2				jr _loop_end 
+0162			;--------------------------------------------------------------------------- 
+0162 fe 0a		_loop_eval_a:	cp 0ah			; 'A' ? 
+0164 20 08				jr nz, _loop_eval_d 
+0166 cd 93 01				call _calc_addr		; calculate address 
+0169			_loop_eval_aa_:	; print address (4 digits) 
+0169					; load byte 
+0169					; print byte 
+0169					; print DP DP 
+0169 cd 61 02				call _key_in		; wait for key press 
+016c					; ESC -> exit 
+016c					; 0-F: print byte (max 2) + advance 
+016c					; BACK: delete last byte 
+016c					; ENTER -> if<2 bytes do nothing 
+016c					; ENTER -> if=2 bytes convert+write+inc address+jr to [print address] 
+016c					; #wie normale eingabe fuer 2 digits !!!# 
+016c 18 a6				jr _loop_end 
+016e			;--------------------------------------------------------------------------- 
+016e fe 0d		_loop_eval_d:	cp 0dh			; 'D' ? 
+0170 20 05				jr nz, _loop_eval_e 
+0172 cd 93 01				call _calc_addr		; calculate address 
+0175					;TODO 
+0175 18 9d				jr _loop_end 
+0177			;--------------------------------------------------------------------------- 
+0177 fe 0e		_loop_eval_e:	cp 0eh			; 'E' ? 
+0179 20 99				jr nz, _loop_end 
+017b 11 00 00				ld de, 0000h 
+017e cd 8d 01				call _str_term		; string terminator ? 
+0181 28 05				jr z, _loop_eval_ee_ 
+0183 cd 93 01				call _calc_addr		; calculate address 
+0186 20 8c				jr nz, _loop_end 
+0188			_loop_eval_ee_:	; print address (4 digits) 
+0188					; print space 
+0188					; load byte 
+0188					; print byte 
+0188					; print DP 
+0188 cd 61 02				call _key_in		; wait for key press 
+018b					; ESC -> exit 
+018b					; ENTER -> jr to [print address] 
+018b 18 87				jr _loop_end 
+018d			;--------------------------------------------------------------------------- 
+018d 23			_str_term:	inc hl			; is next char string terminator ? 
+018e 7e					ld a, (hl) 
+018f 2b					dec hl 
+0190 fe ff				cp 0ffh 
+0192 c9					ret 
+0193			;--------------------------------------------------------------------------- 
+0193 cd 97 01		_calc_addr:	call _calc_addr_	; calculate address out of 4 digits 
+0196 57					ld d, a 
+0197 23			_calc_addr_:	inc hl 
+0198 7e					ld a, (hl) 
+0199 07					rlca 
+019a 07					rlca 
+019b 07					rlca 
+019c 07					rlca 
+019d 23					inc hl 
+019e b6					or (hl) 
+019f 5f					ld e, a 
+01a0 c9					ret 
+01a1			;--------------------------------------------------------------------------- 
+01a1 08			_load_params:	ex af, af' 
+01a2 23					inc hl 
+01a3 7e					ld a, (hl) 
+01a4 08					ex af, af' 
+01a5 23			_load_param:	inc hl 
+01a6 7e					ld a, (hl) 
+01a7 d9					exx 
+01a8 47					ld b, a 
+01a9 d9					exx 
+01aa 23					inc hl 
+01ab 7e					ld a, (hl) 
+01ac d9					exx 
+01ad 4f					ld c, a 
+01ae d9					exx 
+01af 23					inc hl 
+01b0 7e					ld a, (hl) 
+01b1 d9					exx 
+01b2 57					ld d, a 
+01b3 d9					exx 
+01b4 23					inc hl 
+01b5 7e					ld a, (hl) 
+01b6 d9					exx 
+01b7 5f					ld e, a 
+01b8 d9					exx 
+01b9 23					inc hl 
+01ba 7e					ld a, (hl) 
+01bb d9					exx 
+01bc 67					ld h, a 
+01bd d9					exx 
+01be 23					inc hl 
+01bf 7e					ld a, (hl) 
+01c0 d9					exx 
+01c1 6f					ld l, a 
+01c2 d9					exx 
+01c3 c9					ret 
+01c4			;--------------------------------------------------------------------------- 
+01c4 cb 27		_show_KiB:	sla a 
+01c6 cb 27				sla a			; 4 KiB per page 
+01c8 ed 47				ld i, a			; save original 
+01ca cb 3f				srl a 
+01cc cb 3f				srl a 
+01ce cb 3f				srl a 
+01d0 cb 3f				srl a			; bits 4-7 
+01d2 cd 30 02				call _7_seg_out 
+01d5 ed 57				ld a, i 
+01d7 e6 0f				and 0fh			; bits 0-3 
+01d9 cd 30 02				call _7_seg_out 
+01dc c9					ret 
+01dd			;--------------------------------------------------------------------------- 
+01dd 3e 08		_clr:		ld a, 08h		; clear 8 digits 
+01df 06 07				ld b, 07h		; 1st digit on the left 
+01e1 08			_prompt:	ex af, af' 
+01e2 3e 13				ld a, 13h		; DP 
+01e4 cd 30 02				call _7_seg_out 
+01e7 08					ex af, af' 
+01e8 3d					dec a 
+01e9 20 f6				jr nz, _prompt 
+01eb c9					ret 
+01ec			;--------------------------------------------------------------------------- 
+01ec 06 07		_show_date:	ld b, 07h		; 1st digit on the left 
+01ee 0e 50				ld c, _DBG_IO 
+01f0 3e 02				ld a, 02h		; 2 
+01f2 cd 30 02				call _7_seg_out 
+01f5 af					xor a			; 0 
+01f6 cd 30 02				call _7_seg_out 
+01f9 d9			_show_6:	exx 
+01fa 78					ld a, b			; Y | H 
+01fb d9					exx 
+01fc cd 30 02				call _7_seg_out 
+01ff d9					exx 
+0200 79					ld a, c			; Y | H 
+0201 d9					exx 
+0202 cd 30 02				call _7_seg_out 
+0205 d9					exx 
+0206 7a					ld a, d			; M | M 
+0207 d9					exx 
+0208 cd 30 02				call _7_seg_out 
+020b d9					exx 
+020c 7b					ld a, e			; M | M 
+020d d9					exx 
+020e cd 30 02				call _7_seg_out 
+0211 d9					exx 
+0212 7c					ld a, h			; D | S 
+0213 d9					exx 
+0214 cd 30 02				call _7_seg_out 
+0217 d9					exx 
+0218 7d					ld a, l			; D | S 
+0219 d9					exx 
+021a cd 30 02				call _7_seg_out 
+021d c9					ret 
+021e			;--------------------------------------------------------------------------- 
+021e 06 07		_show_time:	ld b, 07h		; 1st digit on the left 
+0220 0e 50				ld c, _DBG_IO 
+0222 cd f9 01				call _show_6 
+0225 3e 13				ld a, 13h		; DP 
+0227 cd 30 02				call _7_seg_out 
+022a 3e 13				ld a, 13h		; DP 
+022c cd 30 02				call _7_seg_out 
+022f c9					ret 
+0230			;--------------------------------------------------------------------------- 
+0230			 
+0230			endif 
+0230			;=========================================================================== 
+# End of file _demon.asm
+0230			;--------------------------------------------------------------------------- 
+0230			if _7_SEG 
+0230			include "_7segment.asm" 
+0230			;=========================================================================== 
+0230			; reZet80 - Z80-based retrocomputing and retrogaming 
+0230			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0230			; 7-segment LED driver (_7segment.asm) [last modified: 2020-12-16] 
+0230			; indentation setting: tab size = 8 
+0230			;=========================================================================== 
+0230 11 3d 02		_7_seg_out:	ld de, _7_seg_dat 
+0233 83					add a, e 
+0234 30 01				jr nc, _7_seg_out_ 
+0236 14					inc d			; crossed 256-byte boundary 
+0237 5f			_7_seg_out_:	ld e, a 
+0238 1a					ld a, (de) 
+0239 ed 79				out (c), a 
+023b 05					dec b			; next digit to the right 
+023c c9					ret 
+023d			;--------------------------------------------------------------------------- 
+023d			; --A--		bit 0: A 
+023d			; |   |		bit 1: B 
+023d			; F   B		bit 2: C 
+023d			; |   |		bit 3: D 
+023d			; --G--		bit 4: E 
+023d			; |   |		bit 5: F 
+023d			; E   C		bit 6: G 
+023d			; |   |		bit 7: DP 
+023d			; --D-- DP 
+023d			;--------------------------------------------------------------------------- 
+023d			; 0: F + E + D + C + B + A 
+023d			; 1: C + B 
+023d			; 2: G + E + D + B + A 
+023d			; 3: G + D + C + B + A 
+023d			; 4: G + F + C +B 
+023d			; 5: G + F + D + C + A 
+023d			; 6: G + F + E + D + C + A 
+023d			; 7: C + B + A 
+023d			; 8: G + F + E + D + C + B + A 
+023d			; 9: G + F + D + C + B + A 
+023d			; A: G + F + E + C + B + A 
+023d			; b: G + F + E + D + C 
+023d			; C: F + E + D + A 
+023d			; d: G + E + D + C + B 
+023d			; E: G + F + E + D + A 
+023d			; F: G + F + E + A 
+023d			; H: G + F + E + C + B 
+023d			; L: F + E + D 
+023d			;--------------------------------------------------------------------------- 
+023d			; common cathode 
+023d			if _7_SEG_CC 
+023d			_7_seg_dat: 
+023d 3f			_7seg_0:	db 3fh			; 00111111b 
+023e 06			_7seg_1:	db 06h			; 00000110b 
+023f 5b			_7seg_2:	db 5bh			; 01011011b 
+0240 4f			_7seg_3:	db 4fh			; 01001111b 
+0241 66			_7seg_4:	db 66h			; 01100110b 
+0242 6d			_7seg_5:	db 6dh			; 01101101b 
+0243 7d			_7seg_6:	db 7dh			; 01111101b 
+0244 07			_7seg_7:	db 07h			; 00000111b	 
+0245 7f			_7seg_8:	db 7fh			; 01111111b 
+0246 6f			_7seg_9:	db 6fh			; 01101111b 
+0247 77			_7seg_a:	db 77h			; 01110111b 
+0248 7c			_7seg_b:	db 7ch			; 01111100b 
+0249 39			_7seg_c:	db 39h			; 00111001b 
+024a 5e			_7seg_d:	db 5eh			; 01011110b 
+024b 79			_7seg_e:	db 79h			; 01111001b 
+024c 71			_7seg_f:	db 71h			; 01110001b 
+024d 00			_7seg_blank:	db 00h			; 00000000b 
+024e 76			_7seg_h:	db 76h			; 01110110b 
+024f 38			_7seg_l:	db 38h			; 00111000b 
+0250 80			_seg_dp:	db 80h                  ; 10000000b 
+0251			endif 
+0251			;--------------------------------------------------------------------------- 
+0251			; common anode 
+0251			if _7_SEG_CA 
+0251			_7_seg_dat: 
+0251			_7seg_0:	db 0c0h			; 11000000b 
+0251			_7seg_1:	db 0f9h			; 11111001b 
+0251			_7seg_2:	db 0a4h			; 10100100b 
+0251			_7seg_3:	db 0b0h			; 10110000b 
+0251			_7seg_4:	db 99h			; 10011001b 
+0251			_7seg_5:	db 92h			; 10010010b 
+0251			_7seg_6:	db 82h			; 10000010b 
+0251			_7seg_7:	db 0f8h			; 11111000b	 
+0251			_7seg_8:	db 80h			; 10000000b 
+0251			_7seg_9:	db 90h			; 10010000b 
+0251			_7seg_a:	db 88h			; 10001000b 
+0251			_7seg_b:	db 83h			; 10000011b 
+0251			_7seg_c:	db 0c6h			; 11000110b 
+0251			_7seg_d:	db 0a1h			; 10100001b 
+0251			_7seg_e:	db 86h			; 10000110b 
+0251			_7seg_f:	db 8eh			; 10001110b 
+0251			_7seg_blank:	db 0ffh			; 11111111b 
+0251			_7seg_h:	db 89h			; 10001001b 
+0251			_7seg_l:	db 0c7h			; 11000111b 
+0251			_seg_dp:	db 7fh			; 01111111b 
+0251			endif 
+0251			;=========================================================================== 
+# End of file _7segment.asm
+0251			endif 
+0251			;--------------------------------------------------------------------------- 
+0251			if _KEYPAD_20 
+0251			include "_keypad20.asm" 
+0251			;=========================================================================== 
+0251			; reZet80 - Z80-based retrocomputing and retrogaming 
+0251			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0251			; keypad 20 driver (_keypad20.asm) [last modified: 2020-10-26] 
+0251			; indentation setting: tab size = 8 
+0251			;=========================================================================== 
+0251			; key codes: 
+0251			; C (0ch)  D (0dh)  E (0eh)  F (0fh)  BACK  (13h) 
+0251			; 8 (08h)  9 (09h)  A (0ah)  B (0bh)  ESC   (12h) 
+0251			; 4 (04h)  5 (05h)  6 (06h)  7 (07h)  SHIFT (11h) 
+0251			; 0 (00h)  1 (01h)  2 (02h)  3 (03h)  ENTER (10h) 
+0251			;--------------------------------------------------------------------------- 
+0251 06 00		_key_io:	ld b, 00h		; b = 0 -> output buffer 
+0253 5f					ld e, a			; e = active key row 
+0254 ed 79				out (c), a 
+0256 04					inc b			; b = 1 -> input buffer 
+0257 ed 78				in a, (c) 
+0259 06 08				ld b, 08h 
+025b 0f			_key_check:	rrca			; any key pressed ? 
+025c d8					ret c 
+025d 14					inc d 
+025e 10 fb				djnz _key_check 
+0260 c9					ret 
+0261			;--------------------------------------------------------------------------- 
+0261 d9			_key_in:	exx 
+0262 0e 40				ld c, _KEY_IO 
+0264 16 00		_key_scan:	ld d, 00h		; d = pressed key 
+0266 3e 01				ld a, 01h		; row 1 
+0268 cd 51 02				call _key_io 
+026b 38 0e				jr c, _key_ok 
+026d 3e 02				ld a, 02h		; row 2 
+026f cd 51 02				call _key_io 
+0272 38 07				jr c, _key_ok 
+0274 3e 04				ld a, 04h		; row 3 
+0276 cd 51 02				call _key_io 
+0279 30 e9				jr nc, _key_scan	; wait for a key press 
+027b 6a			_key_ok:	ld l, d			; save pressed key 
+027c 7b			_key_rel:	ld a, e			; load particular key row 
+027d cd 51 02				call _key_io 
+0280 38 fa				jr c, _key_rel		; wait as long as the key is pressed 
+0282 7d					ld a, l			; returns 00h-13h 
+0283 d9					exx 
+0284 c9					ret			; all extra keys are back up 
+0285			;=========================================================================== 
+# End of file _keypad20.asm
+0285			endif 
+0285			;--------------------------------------------------------------------------- 
+0285			if _RTC_72421 
+0285			include "_rtc.asm" 
+0285			;=========================================================================== 
+0285			; reZet80 - Z80-based retrocomputing and retrogaming 
+0285			; (c) copyright 2016-2020 Adrian H. Hilgarth (all rights reserved) 
+0285			; RTC driver (_rtc.asm) [last modified: 2020-10-26] 
+0285			; indentation setting: tab size = 8 
+0285			;=========================================================================== 
+0285			; for Epson's RTC-72421: 4-bit, 16 regs, time/date in BCD, int, no century 
+0285			; not tested yet: Epson's RTC-72423, RTC-62421 and RTC-62423, OKI's MSM6242B 
+0285			;--------------------------------------------------------------------------- 
+0285 db 6d		_rtc_ready:	in a, (_RTC_D)		; read register D 
+0287 f6 01				or 01h			; set HOLD bit 
+0289 d3 6d				out (_RTC_D), a 
+028b db 6d				in a, (_RTC_D) 
+028d e6 02				and 02h			; BUSY bit set ? 
+028f c8					ret z			; leave with HOLD bit set 
+0290 db 6d		_rtc_hold:	in a, (_RTC_D) 
+0292 e6 0e				and 0eh			; clear HOLD bit 
+0294 d3 6d				out (_RTC_D), a 
+0296 18 ed				jr _rtc_ready 
+0298			;--------------------------------------------------------------------------- 
+0298 cd 85 02		_rtc_time:	call _rtc_ready 
+029b db 65				in a, (_RTC_5) 
+029d e6 03				and 03h			; bits 0 - 1 | AMPM ignored 
+029f d9					exx 
+02a0 47					ld b, a			; b = HOUR_10 
+02a1 db 64				in a, (_RTC_4) 
+02a3 e6 0f				and 0fh			; bits 0 - 3 
+02a5 4f					ld c, a			; c = HOUR_1 
+02a6 db 63				in a, (_RTC_3) 
+02a8 e6 07				and 07h			; bits 0 - 2 
+02aa 57					ld d, a			; d = MIN_10 
+02ab db 62				in a, (_RTC_2) 
+02ad e6 0f				and 0fh			; bits 0 - 3 
+02af 5f					ld e, a			; e = MIN_1 
+02b0 db 61				in a, (_RTC_1) 
+02b2 e6 07				and 07h			; bits 0 - 2 
+02b4 67					ld h, a			; h = SEC_10 
+02b5 db 60				in a, (_RTC_0) 
+02b7 e6 0f				and 0fh			; bits 0 - 3 
+02b9 6f					ld l, a			; l = SEC_1 
+02ba d9					exx 
+02bb cd 90 02				call _rtc_hold 
+02be c9					ret			; (exx)bc:de:hl (HH:MM:SS) 
+02bf			;--------------------------------------------------------------------------- 
+02bf cd 85 02		_rtc_date:	call _rtc_ready 
+02c2 db 6b				in a, (_RTC_B) 
+02c4 e6 0f				and 0fh			; bits 0 - 3 
+02c6 d9					exx 
+02c7 47					ld b, a			; b = YEAR_10 
+02c8 db 6a				in a, (_RTC_A) 
+02ca e6 0f				and 0fh			; bits 0 - 3 
+02cc 4f					ld c, a			; c = YEAR_1 
+02cd db 69				in a, (_RTC_9) 
+02cf e6 01				and 01h			; bit 0 
+02d1 57					ld d, a			; d = MONTH_10 
+02d2 db 68				in a, (_RTC_8) 
+02d4 e6 0f				and 0fh			; bits 0 - 3 
+02d6 5f					ld e, a			; e = MONTH_1 
+02d7 db 67				in a, (_RTC_7) 
+02d9 e6 03				and 03h			; bits 0 - 1 
+02db 67					ld h, a			; h = DAY_10 
+02dc db 66				in a, (_RTC_6) 
+02de e6 0f				and 0fh			; bits 0 - 3 
+02e0 6f					ld l, a			; l = DAY_1 
+02e1 d9					exx 
+02e2					; ignore day of week 
+02e2					;in a, (_RTC_C) 
+02e2					;and 07h			; bits 0 - 2 
+02e2					;ex af, af'		; a = WEEK_DAY 
+02e2 cd 90 02				call _rtc_hold 
+02e5					;ex af, af' 
+02e5 c9					ret			; a (exx)bc-de-hl (DW 20YY-MM-DD) 
+02e6			;--------------------------------------------------------------------------- 
+02e6 3e 04		_rtc_init:	ld a, 04h		; 0100b TEST|2412|STOP|RESET 
+02e8 d3 6f				out (_RTC_F), a 
+02ea af					xor a			; 0000b T1|T0|INT|MASK 
+02eb d3 6e				out (_RTC_E), a 
+02ed d3 6d				out (_RTC_D), a		; 0000b 30ADJ|IRQ|BUSY|HOLD 
+02ef d9					exx 
+02f0 c9					ret 
+02f1			;--------------------------------------------------------------------------- 
+02f1 cd e6 02		_rtc_common:	call _rtc_init 
+02f4 cd 85 02				call _rtc_ready 
+02f7 3e 07				ld a, 07h		; 0111b TEST|2412|STOP|RESET 
+02f9 d3 6f				out (_RTC_F), a 
+02fb c9					ret 
+02fc			;--------------------------------------------------------------------------- 
+02fc cd f1 02		_rtc_set_date:	call _rtc_common 
+02ff 08					ex af, af'		; write registers 6 - C 
+0300 d3 6c				out (_RTC_C), a 
+0302 78					ld a, b			; (exx)a 20bc-de-hl (DW 20YY-MM-DD) 
+0303 d3 6b				out (_RTC_B), a 
+0305 79					ld a, c 
+0306 d3 6a				out (_RTC_A), a 
+0308 7a					ld a, d 
+0309 d3 69				out (_RTC_9), a 
+030b 7b					ld a, e 
+030c d3 68				out (_RTC_8), a 
+030e 7c					ld a, h 
+030f d3 67				out (_RTC_7), a 
+0311 7d					ld a, l 
+0312 d3 66				out (_RTC_6), a 
+0314 cd e6 02				call _rtc_init 
+0317 c9					ret 
+0318			;--------------------------------------------------------------------------- 
+0318 cd f1 02		_rtc_set_time:	call _rtc_common 
+031b 78					ld a, b			; write registers 0 - 5 
+031c d3 65				out (_RTC_5), a		; (exx)bc:de:hl (HH:MM:SS) 
+031e 79					ld a, c 
+031f d3 64				out (_RTC_4), a 
+0321 7a					ld a, d 
+0322 d3 63				out (_RTC_3), a 
+0324 7b					ld a, e 
+0325 d3 62				out (_RTC_2), a 
+0327 7c					ld a, h 
+0328 d3 61				out (_RTC_1), a 
+032a 7d					ld a, l 
+032b d3 60				out (_RTC_0), a 
+032d cd e6 02				call _rtc_init 
+0330 c9					ret 
+0331			;--------------------------------------------------------------------------- 
+0331 3e 06		_rtc_int:	ld a, 06h		; 0110b T1|T0|INT|MASK 
+0333 d3 6e				out (_RTC_E), a		; enable 1s interrupt 
+0335 fb					ei			; enable Z80 interrupts 
+0336 c9					ret 
+0337			;--------------------------------------------------------------------------- 
+0337 db 6d		_rtc_isr:	in a, (_RTC_D)		; interrupt request handler 
+0339 cb 57				bit 2, a 
+033b c8					ret z			; no RTC interrupt occured 
+033c e6 0b				and 0bh			; 1011b, clears carry flag 
+033e d3 6d				out (_RTC_D), a		; clear IRQ flag 
+0340			;		call _show_clk		; show current time on clock display 
+0340 c9					ret 
+0341			;--------------------------------------------------------------------------- 
+0341			;_dat_weekday:	db 'SUN', 00h		; = 0 
+0341			;		db 'MON', 00h		; = 1 
+0341			;		db 'TUE', 00h		; = 2 
+0341			;		db 'WED', 00h		; = 3 
+0341			;		db 'THU', 00h		; = 4 
+0341			;		db 'FRI', 00h		; = 5 
+0341			;		db 'SAT', 00h		; = 6 
+0341			;_dat_2k:	db ' 20', 00h 
+0341			;=========================================================================== 
+# End of file _rtc.asm
+0341			endif 
+0341			;--------------------------------------------------------------------------- 
+0341 0x00...				ds 8000h-$, 00h		; fill up (32 KiB) 
+8000			;=========================================================================== 
+# End of file _dev.asm
+8000

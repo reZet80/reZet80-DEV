@@ -1,0 +1,6 @@
+#!/bin/sh
+# build reZet80 DEV
+cd src
+# compile with z80asm v1.8
+z80asm _dev.asm -o ../bin/_dev.z80 --list=../bin/_dev.lst
+cd ..

@@ -1,0 +1,22 @@
+reZet80 deMon R1 README [last modified: 2020-08-06]
+---------------------------------------------------
+
+This is the reZet80 deMon (debug Monitor) R1 (release 1).
+
+The amount of ROM and RAM are checked and displayed on the debug board
+(shall be 20H and 20H for the 64 KiB board, "H" for hexadecimal).
+The decimal point (DP) on the right tells you to press any key to continue.
+Then the date and time are displayed (will be 2000-00-00 and 00:00:00 on
+first startup). Again, look out for the DP.
+
+List of available commands:
+- "0":        goto 0000h (soft reset)
+- "0xxxx":    goto xxxxh (jump to address)
+- "1":        show date
+- "1WYYMMDD": set date (day of week W, year 20YY, month MM, day DD)
+              day of week: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+- "2":        show time
+- "2HHMMSS":  set time (hour HH, minute MM, second SS, 24-hour format)
+
+Due to the battery backup the system clock continues to work after
+system shutdown.
